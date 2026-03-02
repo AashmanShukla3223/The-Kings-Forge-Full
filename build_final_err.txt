@@ -1,0 +1,315 @@
+﻿cargo :    Compiling 
+win32_bootstrap v0.1.0 
+(C:\Users\System Admin 
+Hacker\Desktop\Agents 
+Building EXE Files 
+Every Two Days)
+At line:1 char:1
++ cargo build --target 
+x86_64-pc-windows-gnu 
+--release 2>&1 | 
+Out-File  ...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (   Compiling    
+ wi...Every Two Day    
+s):String) [], Rem    
+oteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+warning: structure 
+field `lpfnWndProc` 
+should have a snake 
+case name
+  --> src\main.rs:26:5
+   |
+26 |     lpfnWndProc: 
+Option<unsafe extern 
+"system" fn(HWND, u32, 
+WPARAM, LPARAM) -> 
+LRESULT>,
+   |     ^^^^^^^^^^^ 
+help: convert the 
+identifier to snake 
+case: `lpfn_wnd_proc`
+   |
+   = note: `#[warn(non_
+snake_case)]` (part of 
+`#[warn(nonstandard_sty
+le)]`) on by default
+
+warning: structure 
+field `cbClsExtra` 
+should have a snake 
+case name
+  --> src\main.rs:27:5
+   |
+27 |     cbClsExtra: 
+i32,
+   |     ^^^^^^^^^^ 
+help: convert the 
+identifier to snake 
+case: `cb_cls_extra`
+
+warning: structure 
+field `cbWndExtra` 
+should have a snake 
+case name
+  --> src\main.rs:28:5
+   |
+28 |     cbWndExtra: 
+i32,
+   |     ^^^^^^^^^^ 
+help: convert the 
+identifier to snake 
+case: `cb_wnd_extra`
+
+warning: structure 
+field `hInstance` 
+should have a snake 
+case name
+  --> src\main.rs:29:5
+   |
+29 |     hInstance: 
+HMODULE,
+   |     ^^^^^^^^^ 
+help: convert the 
+identifier to snake 
+case: `h_instance`
+
+warning: structure 
+field `hIcon` should 
+have a snake case name
+  --> src\main.rs:30:5
+   |
+30 |     hIcon: HICON,
+   |     ^^^^^ help: 
+convert the identifier 
+to snake case: `h_icon`
+
+warning: structure 
+field `hCursor` should 
+have a snake case name
+  --> src\main.rs:31:5
+   |
+31 |     hCursor: 
+HCURSOR,
+   |     ^^^^^^^ help: 
+convert the identifier 
+to snake case: 
+`h_cursor`
+
+warning: structure 
+field `hbrBackground` 
+should have a snake 
+case name
+  --> src\main.rs:32:5
+   |
+32 |     
+hbrBackground: HBRUSH,
+   |     ^^^^^^^^^^^^^ 
+help: convert the 
+identifier to snake 
+case: `hbr_background`
+
+warning: structure 
+field `lpszMenuName` 
+should have a snake 
+case name
+  --> src\main.rs:33:5
+   |
+33 |     lpszMenuName: 
+*const u16,
+   |     ^^^^^^^^^^^^ 
+help: convert the 
+identifier to snake 
+case: `lpsz_menu_name`
+
+warning: structure 
+field `lpszClassName` 
+should have a snake 
+case name
+  --> src\main.rs:34:5
+   |
+34 |     
+lpszClassName: *const 
+u16,
+   |     ^^^^^^^^^^^^^ 
+help: convert the 
+identifier to snake 
+case: `lpsz_class_name`
+
+warning: structure 
+field `wParam` should 
+have a snake case name
+  --> src\main.rs:47:5
+   |
+47 |     wParam: 
+WPARAM,
+   |     ^^^^^^ help: 
+convert the identifier 
+to snake case: 
+`w_param`
+
+warning: structure 
+field `lParam` should 
+have a snake case name
+  --> src\main.rs:48:5
+   |
+48 |     lParam: 
+LPARAM,
+   |     ^^^^^^ help: 
+convert the identifier 
+to snake case: 
+`l_param`
+
+error: linking with 
+`rust-lld.exe` failed: 
+exit code: 1
+  |
+  = note: 
+"rust-lld.exe" 
+"-flavor" "gnu" 
+"--dynamicbase" "--disa
+ble-auto-image-base" 
+"-m" "i386pep" 
+"--high-entropy-va" 
+"<1 object files 
+omitted>" "-Bdynamic" 
+"-lkernel32" 
+"-luser32" "-Bstatic" "
+C:\\Users\\SYSTEM~1\\Ap
+pData\\Local\\Temp\\rus
+tcE0pwcX/{libpanic_abor
+t-d8b0d2a29cf6ab70,libs
+td-d0f14501aefdf442,lib
+object-132828da69e89fb5
+,libmemchr-64333dd43460
+71a0,libaddr2line-bc9ab
+3b6b929275b,libgimli-bd
+ed757c936ff9f9,libcfg_i
+f-203d5f79e7356f4e,libw
+indows_targets-ba10de22
+4f74cd36,librustc_deman
+gle-257e1cd32ae241c6,li
+bstd_detect-ad97edc6ec6
+140f8,libhashbrown-f6ce
+7c88fbaf146f,librustc_s
+td_workspace_alloc-b402
+100fd8f27a27,libminiz_o
+xide-9e08c1500c492b6b,l
+ibadler2-414475378ef450
+df,libunwind-781a1a7a52
+d592f2,liblibc-7507cd6f
+76d78080,librustc_std_w
+orkspace_core-8313f25e5
+da108ea,liballoc-c50ad9
+9550af5539,libcore-571f
+fe4b09576bf0}.rlib" "<s
+ysroot>\\lib\\rustlib\\
+x86_64-pc-windows-gnu\\
+lib/libcompiler_builtin
+s-*.rlib" "-Bdynamic" 
+"-lkernel32" 
+"-lkernel32" 
+"-lkernel32" "-lntdll" 
+"-luserenv" "-lws2_32" 
+"-ldbghelp" "-lgcc_eh" 
+"-l:libpthread.a" 
+"-lmsvcrt" "-lmingwex" 
+"-lmingw32" "-lgcc" 
+"-lmsvcrt" "-lmingwex" 
+"-luser32" 
+"-lkernel32" 
+"--nxcompat" "-o" 
+"C:\\Users\\System 
+Admin Hacker\\Desktop\\
+Agents Building EXE 
+Files Every Two Days\\t
+arget\\x86_64-pc-window
+s-gnu\\release\\deps\\w
+in32_bootstrap-78acd62f
+4e5aa3cc.exe" 
+"--subsystem" 
+"windows" 
+"--gc-sections" 
+"--strip-all"
+  = note: some 
+arguments are omitted. 
+use `--verbose` to 
+show all linker 
+arguments
+  = note: lld: error: 
+unable to find library 
+-lkernel32ΓÉì
+          lld: error: 
+unable to find library 
+-luser32ΓÉì
+          lld: error: 
+unable to find library 
+-lkernel32ΓÉì
+          lld: error: 
+unable to find library 
+-lkernel32ΓÉì
+          lld: error: 
+unable to find library 
+-lkernel32ΓÉì
+          lld: error: 
+unable to find library 
+-lntdllΓÉì
+          lld: error: 
+unable to find library 
+-luserenvΓÉì
+          lld: error: 
+unable to find library 
+-lws2_32ΓÉì
+          lld: error: 
+unable to find library 
+-ldbghelpΓÉì
+          lld: error: 
+unable to find library 
+-lgcc_ehΓÉì
+          lld: error: 
+unable to find library 
+-l:libpthread.aΓÉì
+          lld: error: 
+unable to find library 
+-lmsvcrtΓÉì
+          lld: error: 
+unable to find library 
+-lmingwexΓÉì
+          lld: error: 
+unable to find library 
+-lmingw32ΓÉì
+          lld: error: 
+unable to find library 
+-lgccΓÉì
+          lld: error: 
+unable to find library 
+-lmsvcrtΓÉì
+          lld: error: 
+unable to find library 
+-lmingwexΓÉì
+          lld: error: 
+unable to find library 
+-luser32ΓÉì
+          lld: error: 
+unable to find library 
+-lkernel32ΓÉì
+          
+
+warning: 
+`win32_bootstrap` (bin 
+"win32_bootstrap") 
+generated 11 warnings
+error: could not 
+compile 
+`win32_bootstrap` (bin 
+"win32_bootstrap") due 
+to 1 previous error; 
+11 warnings emitted

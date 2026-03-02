@@ -1,0 +1,32 @@
+name: Build Native Windows Executable
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install stable-x86_64-pc-windows-gnu toolchain
+      run: rustup toolchain install stable-x86_64-pc-windows-gnu
+      
+    - name: Default to GNU toolchain
+      run: rustup default stable-x86_64-pc-windows-gnu
+
+    - name: Build App
+      run: cargo build --release --verbose
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: win32_bootstrap
+        path: target/release/win32_bootstrap.exe

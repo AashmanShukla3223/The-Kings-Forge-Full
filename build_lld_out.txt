@@ -1,0 +1,118 @@
+﻿cargo :    Compiling 
+windows_x86_64_msvc 
+v0.52.6
+At line:1 char:1
++ cargo build 
+--release 2>&1 | 
+Out-File -Encoding 
+utf8 build_lld_out.tx 
+...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (   Compiling    
+ windows_x86_64_msv    
+c v0.52.6:String)     
+[], RemoteExceptio    n
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+error: linking with 
+`rust-lld.exe` failed: 
+exit code: 1
+  |
+  = note: 
+"rust-lld.exe" 
+"-flavor" "link" 
+"/NOLOGO" "C:\\Users\\S
+YSTEM~1\\AppData\\Local
+\\Temp\\rustcCXqvNh\\sy
+mbols.o" "<2 object 
+files omitted>" "<sysro
+ot>\\lib\\rustlib\\x86_
+64-pc-windows-msvc\\lib
+/{libstd-*,libpanic_unw
+ind-*,libcfg_if-*,libwi
+ndows_targets-*,librust
+c_demangle-*,libstd_det
+ect-*,libhashbrown-*,li
+brustc_std_workspace_al
+loc-*,libunwind-*,libru
+stc_std_workspace_core-
+*,liballoc-*,libcore-*,
+libcompiler_builtins-*}
+.rlib" "kernel32.lib" 
+"kernel32.lib" 
+"kernel32.lib" 
+"ntdll.lib" 
+"userenv.lib" 
+"ws2_32.lib" 
+"dbghelp.lib" 
+"/defaultlib:msvcrt" 
+"/NXCOMPAT" "/OUT:C:\\U
+sers\\System Admin Hack
+er\\Desktop\\Agents 
+Building EXE Files 
+Every Two Days\\target\
+\release\\build\\window
+s_x86_64_msvc-ece6c13c9
+81c6640\\build_script_b
+uild-ece6c13c981c6640.e
+xe" "/OPT:REF,NOICF" 
+"/DEBUG" 
+"/PDBALTPATH:%_PDB%" "/
+NATVIS:<sysroot>\\lib\\
+rustlib\\etc\\intrinsic
+.natvis" "/NATVIS:<sysr
+oot>\\lib\\rustlib\\etc
+\\liballoc.natvis" "/NA
+TVIS:<sysroot>\\lib\\ru
+stlib\\etc\\libcore.nat
+vis" "/NATVIS:<sysroot>
+\\lib\\rustlib\\etc\\li
+bstd.natvis"
+  = note: some 
+arguments are omitted. 
+use `--verbose` to 
+show all linker 
+arguments
+  = note: rust-lld: 
+error: could not open 
+'kernel32.lib': no 
+such file or 
+directoryΓÉì
+          rust-lld: 
+error: could not open 
+'kernel32.lib': no 
+such file or 
+directoryΓÉì
+          rust-lld: 
+error: could not open 
+'kernel32.lib': no 
+such file or 
+directoryΓÉì
+          rust-lld: 
+error: could not open 
+'ntdll.lib': no such 
+file or directoryΓÉì
+          rust-lld: 
+error: could not open 
+'userenv.lib': no such 
+file or directoryΓÉì
+          rust-lld: 
+error: could not open 
+'ws2_32.lib': no such 
+file or directoryΓÉì
+          rust-lld: 
+error: could not open 
+'dbghelp.lib': no such 
+file or directoryΓÉì
+          
+
+error: could not 
+compile 
+`windows_x86_64_msvc` 
+(build script) due to 
+1 previous error
