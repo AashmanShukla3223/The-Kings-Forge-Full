@@ -26,7 +26,8 @@
 | **INIT** | 2026-03-02 | Repository Setup | **SUCCESS** | +4KB | Established project structure. |
 | **C-001** | 2026-03-02 | Initial Bootstrap | **SUCCESS** | 234KB | Used Raw FFI instead of windows-sys to bypass missing MSVC SDK dependency. |
 | **C-002** | 2026-03-03 | Sysadmin Micro-Utility | **SUCCESS** | 244KB | Implemented `nt-proc-lens` process explorer using pure Win32 API (`CreateToolhelp32Snapshot`). |
-| **C-003** | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* |
+| **C-003** | 2026-03-03 | Process Termination | **SUCCESS** | 256KB | Added manual cli argument parsing, `TerminateProcess`, and `CreateProcessW` for recursive tree killing/restarting. |
+| **C-004** | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* |
 
 ---
 
@@ -52,6 +53,10 @@
 ### Process Management
 * *Preferred Pattern:* `CreateToolhelp32Snapshot` combined with `Process32FirstW` / `Process32NextW`. Use `OpenProcess` with `PROCESS_QUERY_INFORMATION | PROCESS_VM_READ` and pass the handle to `GetProcessMemoryInfo` for lightweight memory profiling.
 * *Reason:* Avoids heavy abstractions. Provides direct, exact access to OS process data.
+
+### Process Termination & Restarting
+* *Preferred Pattern:* When killing processes, traverse the tree by checking `th32ParentProcessID` against the target PID to avoid zombies. Use `GetModuleFileNameExW` before killing to store the `.exe` path if a restart via `CreateProcessW` is required.
+* *Reason:* Native Windows handles are strict. A process cannot easily be restarted unless its full physical path is known prior to termination.
 
 ---
 
