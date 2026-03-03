@@ -16,11 +16,11 @@ use windows_sys::Win32::UI::WindowsAndMessaging::*;
 
 // ---- Constants ----
 const IDC_LISTVIEW: u32 = 1001;
+const IDC_BTN_REFRESH: u32 = 1002;
+const IDC_EDIT_SEARCH: u32 = 1003;
 const IDM_KILL: u32 = 2001;
 const IDM_RESTART: u32 = 2002;
 const IDM_REFRESH: u32 = 2003;
-const TIMER_REFRESH: usize = 5001;
-const REFRESH_INTERVAL_MS: u32 = 2000;
 
 // ---- Helpers ----
 fn to_wstr(s: &str) -> Vec<u16> {
@@ -139,7 +139,6 @@ fn get_executable_path(pid: u32) -> Option<Vec<u16>> {
         CloseHandle(handle);
         if len > 0 {
             path_buf.truncate(len as usize);
-            path_buf.push(0);
             Some(path_buf)
         } else {
             None
@@ -149,11 +148,11 @@ fn get_executable_path(pid: u32) -> Option<Vec<u16>> {
 
 fn execute_restart(pid: u32) {
     let procs = snapshot_processes();
-    let exe_path = get_executable_path(pid);
-    if exe_path.is_none() {
+    let exe_path_opt = get_executable_path(pid);
+    if exe_path_opt.is_none() {
         return;
     }
-    let exe_path_wstr = exe_path.unwrap();
+    let exe_path_wstr = exe_path_opt.unwrap();
     let tree = find_process_tree(pid, &procs);
     for child_pid in tree {
         execute_kill(child_pid);
@@ -163,7 +162,17 @@ fn execute_restart(pid: u32) {
         let mut si: STARTUPINFOW = std::mem::zeroed();
         si.cb = std::mem::size_of::<STARTUPINFOW>() as u32;
         let mut pi: PROCESS_INFORMATION = std::mem::zeroed();
-        let mut cmd_line = exe_path_wstr.clone();
+
+        // C-005 BUGFIX: Properly encapsulate the path in quotation marks
+        // CreateProcessW expects a mutable command line buffer, and paths with spaces
+        // (like C:\Program Files) absolutely require quotes.
+        let mut cmd_line = Vec::new();
+        cmd_line.push('\"' as u16);
+        for &c in &exe_path_wstr {
+            cmd_line.push(c);
+        }
+        cmd_line.push('\"' as u16);
+        cmd_line.push(0); // Null terminator
 
         let success = CreateProcessW(
             ptr::null(),
@@ -185,34 +194,45 @@ fn execute_restart(pid: u32) {
 }
 
 // ---- GUI: ListView Population ----
-unsafe fn populate_listview(hwnd_lv: HWND) {
-    // Clear existing items
+unsafe fn populate_listview(hwnd_lv: HWND, hwnd_edit: HWND) {
     SendMessageW(hwnd_lv, LVM_DELETEALLITEMS, 0, 0);
+
+    let mut filter = String::new();
+    let len = SendMessageW(hwnd_edit, WM_GETTEXTLENGTH, 0, 0);
+    if len > 0 {
+        let mut buf = vec![0u16; (len + 1) as usize];
+        SendMessageW(hwnd_edit, WM_GETTEXT, buf.len(), buf.as_mut_ptr() as isize);
+        filter = wstr_to_string(&buf).trim().to_lowercase();
+    }
 
     let processes = snapshot_processes();
 
-    for (i, proc) in processes.iter().enumerate() {
+    let mut index = 0;
+    for proc in processes.iter() {
+        if !filter.is_empty() && !proc.name.to_lowercase().contains(&filter) {
+            continue;
+        }
+
         let name_w = to_wstr(&proc.name);
         let pid_str = to_wstr(&proc.pid.to_string());
         let mem_str = to_wstr(&format!("{} KB", proc.memory_kb));
 
-        // Insert row with Process Name
         let mut item: LVITEMW = std::mem::zeroed();
         item.mask = LVIF_TEXT;
-        item.iItem = i as i32;
+        item.iItem = index as i32;
         item.iSubItem = 0;
         item.pszText = name_w.as_ptr() as *mut u16;
         SendMessageW(hwnd_lv, LVM_INSERTITEMW, 0, &item as *const _ as isize);
 
-        // Set PID column
         item.iSubItem = 1;
         item.pszText = pid_str.as_ptr() as *mut u16;
-        SendMessageW(hwnd_lv, LVM_SETITEMTEXTW, i, &item as *const _ as isize);
+        SendMessageW(hwnd_lv, LVM_SETITEMTEXTW, index, &item as *const _ as isize);
 
-        // Set Memory column
         item.iSubItem = 2;
         item.pszText = mem_str.as_ptr() as *mut u16;
-        SendMessageW(hwnd_lv, LVM_SETITEMTEXTW, i, &item as *const _ as isize);
+        SendMessageW(hwnd_lv, LVM_SETITEMTEXTW, index, &item as *const _ as isize);
+
+        index += 1;
     }
 }
 
@@ -221,64 +241,22 @@ unsafe fn get_selected_pid(hwnd_lv: HWND) -> Option<u32> {
     if sel < 0 {
         return None;
     }
-
     let mut buf = [0u16; 32];
     let mut item: LVITEMW = std::mem::zeroed();
     item.mask = LVIF_TEXT;
     item.iItem = sel as i32;
-    item.iSubItem = 1; // PID column
+    item.iSubItem = 1;
     item.pszText = buf.as_mut_ptr();
     item.cchTextMax = buf.len() as i32;
     SendMessageW(hwnd_lv, LVM_GETITEMTEXTW, sel as usize, &item as *const _ as isize);
-
     let pid_str = wstr_to_string(&buf);
     pid_str.trim().parse::<u32>().ok()
 }
 
-// ---- GUI: Create ListView ----
-unsafe fn create_listview(hwnd_parent: HWND, h_instance: HANDLE) -> HWND {
-    let class_name = to_wstr("SysListView32");
-
-    let hwnd_lv = CreateWindowExW(
-        0,
-        class_name.as_ptr(),
-        ptr::null(),
-        WS_CHILD | WS_VISIBLE | WS_BORDER | LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS,
-        0,
-        0,
-        800,
-        560,
-        hwnd_parent,
-        IDC_LISTVIEW as HMENU,
-        h_instance as HINSTANCE,
-        ptr::null(),
-    );
-
-    // Enable full-row select and grid lines
-    SendMessageW(
-        hwnd_lv,
-        LVM_SETEXTENDEDLISTVIEWSTYLE,
-        0,
-        (LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES | LVS_EX_DOUBLEBUFFER) as isize,
-    );
-
-    // Insert columns
-    let cols = [("Process Name", 300), ("PID", 100), ("Memory", 200)];
-    for (i, (title, width)) in cols.iter().enumerate() {
-        let title_w = to_wstr(title);
-        let mut col: LVCOLUMNW = std::mem::zeroed();
-        col.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
-        col.cx = *width;
-        col.pszText = title_w.as_ptr() as *mut u16;
-        col.iSubItem = i as i32;
-        SendMessageW(hwnd_lv, LVM_INSERTCOLUMNW, i, &col as *const _ as isize);
-    }
-
-    hwnd_lv
-}
-
-// ---- GUI: Window Procedure ----
+// ---- GUI: Window Management ----
 static mut HWND_LISTVIEW: HWND = 0;
+static mut HWND_BTN_REFRESH: HWND = 0;
+static mut HWND_EDIT_SEARCH: HWND = 0;
 
 unsafe extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
     match msg {
@@ -290,42 +268,98 @@ unsafe extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam:
             };
             InitCommonControlsEx(&icc);
 
-            HWND_LISTVIEW = create_listview(hwnd, h_instance as HANDLE);
-            populate_listview(HWND_LISTVIEW);
+            // Create Search Edit
+            HWND_EDIT_SEARCH = CreateWindowExW(
+                WS_EX_CLIENTEDGE,
+                to_wstr("EDIT").as_ptr(),
+                ptr::null(),
+                WS_CHILD | WS_VISIBLE | (ES_LEFT as u32) | (ES_AUTOHSCROLL as u32),
+                0, 0, 0, 0,
+                hwnd,
+                IDC_EDIT_SEARCH as HMENU,
+                h_instance as HINSTANCE,
+                ptr::null(),
+            );
+            // Default text
+            SendMessageW(HWND_EDIT_SEARCH, WM_SETTEXT, 0, to_wstr("").as_ptr() as isize);
 
-            // Set a timer for auto-refresh
-            SetTimer(hwnd, TIMER_REFRESH, REFRESH_INTERVAL_MS, None);
+            // Create Refresh Button
+            HWND_BTN_REFRESH = CreateWindowExW(
+                0,
+                to_wstr("BUTTON").as_ptr(),
+                to_wstr("Refresh Process List").as_ptr(),
+                WS_CHILD | WS_VISIBLE | (BS_PUSHBUTTON as u32),
+                0, 0, 0, 0,
+                hwnd,
+                IDC_BTN_REFRESH as HMENU,
+                h_instance as HINSTANCE,
+                ptr::null(),
+            );
+
+            // Create ListView
+            HWND_LISTVIEW = CreateWindowExW(
+                0,
+                to_wstr("SysListView32").as_ptr(),
+                ptr::null(),
+                WS_CHILD | WS_VISIBLE | WS_BORDER | LVS_REPORT | LVS_SINGLESEL | LVS_SHOWSELALWAYS,
+                0, 0, 0, 0,
+                hwnd,
+                IDC_LISTVIEW as HMENU,
+                h_instance as HINSTANCE,
+                ptr::null(),
+            );
+
+            SendMessageW(
+                HWND_LISTVIEW,
+                LVM_SETEXTENDEDLISTVIEWSTYLE,
+                0,
+                (LVS_EX_FULLROWSELECT | LVS_EX_GRIDLINES | LVS_EX_DOUBLEBUFFER) as isize,
+            );
+
+            let cols = [("Process Name", 300), ("PID", 100), ("Memory", 200)];
+            for (i, (title, width)) in cols.iter().enumerate() {
+                let title_w = to_wstr(title);
+                let mut col: LVCOLUMNW = std::mem::zeroed();
+                col.mask = LVCF_TEXT | LVCF_WIDTH | LVCF_SUBITEM;
+                col.cx = *width;
+                col.pszText = title_w.as_ptr() as *mut u16;
+                col.iSubItem = i as i32;
+                SendMessageW(HWND_LISTVIEW, LVM_INSERTCOLUMNW, i, &col as *const _ as isize);
+            }
+
+            populate_listview(HWND_LISTVIEW, HWND_EDIT_SEARCH);
             0
         }
         WM_SIZE => {
             let width = (lparam & 0xFFFF) as i32;
             let height = ((lparam >> 16) & 0xFFFF) as i32;
-            if HWND_LISTVIEW != 0 {
-                SetWindowPos(HWND_LISTVIEW, 0, 0, 0, width, height, SWP_NOZORDER);
+            
+            let btn_width = 160;
+            let control_height = 32;
+            let padding = 10;
+
+            if HWND_BTN_REFRESH != 0 {
+                SetWindowPos(HWND_BTN_REFRESH, 0, width - btn_width - padding, padding, btn_width, control_height, SWP_NOZORDER);
             }
-            0
-        }
-        WM_TIMER => {
-            if wparam == TIMER_REFRESH {
-                populate_listview(HWND_LISTVIEW);
+            if HWND_EDIT_SEARCH != 0 {
+                SetWindowPos(HWND_EDIT_SEARCH, 0, padding, padding, width - btn_width - (padding * 3), control_height, SWP_NOZORDER);
+            }
+            if HWND_LISTVIEW != 0 {
+                let lv_y = control_height + (padding * 2);
+                SetWindowPos(HWND_LISTVIEW, 0, 0, lv_y, width, height - lv_y, SWP_NOZORDER);
             }
             0
         }
         WM_NOTIFY => {
             let nmhdr = &*(lparam as *const NMHDR);
             if nmhdr.idFrom == IDC_LISTVIEW as usize && nmhdr.code == NM_RCLICK {
-                // Show context menu at cursor position
                 let mut pt: POINT = std::mem::zeroed();
                 GetCursorPos(&mut pt);
-
                 let hmenu = CreatePopupMenu();
-                let kill_str = to_wstr("Kill Process Tree");
-                let restart_str = to_wstr("Restart Process");
-                let refresh_str = to_wstr("Refresh");
-                AppendMenuW(hmenu, MF_STRING, IDM_KILL as usize, kill_str.as_ptr());
-                AppendMenuW(hmenu, MF_STRING, IDM_RESTART as usize, restart_str.as_ptr());
+                AppendMenuW(hmenu, MF_STRING, IDM_KILL as usize, to_wstr("Kill Process Tree").as_ptr());
+                AppendMenuW(hmenu, MF_STRING, IDM_RESTART as usize, to_wstr("Restart Process").as_ptr());
                 AppendMenuW(hmenu, MF_SEPARATOR, 0, ptr::null());
-                AppendMenuW(hmenu, MF_STRING, IDM_REFRESH as usize, refresh_str.as_ptr());
+                AppendMenuW(hmenu, MF_STRING, IDM_REFRESH as usize, to_wstr("Refresh List").as_ptr());
                 TrackPopupMenu(hmenu, TPM_RIGHTBUTTON, pt.x, pt.y, 0, hwnd, ptr::null());
                 DestroyMenu(hmenu);
             }
@@ -333,72 +367,48 @@ unsafe extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam:
         }
         WM_COMMAND => {
             let cmd = (wparam & 0xFFFF) as u32;
-            match cmd {
-                IDM_KILL => {
-                    if let Some(pid) = get_selected_pid(HWND_LISTVIEW) {
-                        if pid == 0 || pid == 4 {
-                            let title = to_wstr("Warning");
-                            let msg = to_wstr("Cannot kill critical system process.");
-                            MessageBoxW(hwnd, msg.as_ptr(), title.as_ptr(), MB_ICONWARNING | MB_OK);
-                        } else {
-                            let title = to_wstr("Confirm Kill");
-                            let msg_text = to_wstr(&format!(
-                                "Kill process tree for PID {}?",
-                                pid
-                            ));
-                            let result = MessageBoxW(
-                                hwnd,
-                                msg_text.as_ptr(),
-                                title.as_ptr(),
-                                MB_ICONQUESTION | MB_YESNO,
-                            );
-                            if result == IDYES {
-                                let procs = snapshot_processes();
-                                let tree = find_process_tree(pid, &procs);
-                                for child_pid in tree {
-                                    execute_kill(child_pid);
-                                }
-                                populate_listview(HWND_LISTVIEW);
-                            }
+            let notify_code = ((wparam >> 16) & 0xFFFF) as u32;
+
+            if cmd == IDC_BTN_REFRESH {
+                populate_listview(HWND_LISTVIEW, HWND_EDIT_SEARCH);
+            } else if cmd == IDC_EDIT_SEARCH && notify_code == EN_CHANGE {
+                // If search box changes, dynamically update list
+                populate_listview(HWND_LISTVIEW, HWND_EDIT_SEARCH);
+            } else if cmd == IDM_REFRESH {
+                populate_listview(HWND_LISTVIEW, HWND_EDIT_SEARCH);
+            } else if cmd == IDM_KILL {
+                if let Some(pid) = get_selected_pid(HWND_LISTVIEW) {
+                    if pid == 0 || pid == 4 {
+                        MessageBoxW(hwnd, to_wstr("Cannot kill critical system process.").as_ptr(), to_wstr("Warning").as_ptr(), MB_ICONWARNING | MB_OK);
+                    } else {
+                        let text = format!("Kill process tree for PID {}?", pid);
+                        let result = MessageBoxW(hwnd, to_wstr(&text).as_ptr(), to_wstr("Confirm Kill").as_ptr(), MB_ICONQUESTION | MB_YESNO);
+                        if result == IDYES {
+                            let procs = snapshot_processes();
+                            let tree = find_process_tree(pid, &procs);
+                            for child_pid in tree { execute_kill(child_pid); }
+                            populate_listview(HWND_LISTVIEW, HWND_EDIT_SEARCH);
                         }
                     }
                 }
-                IDM_RESTART => {
-                    if let Some(pid) = get_selected_pid(HWND_LISTVIEW) {
-                        if pid == 0 || pid == 4 {
-                            let title = to_wstr("Warning");
-                            let msg = to_wstr("Cannot restart critical system process.");
-                            MessageBoxW(hwnd, msg.as_ptr(), title.as_ptr(), MB_ICONWARNING | MB_OK);
-                        } else {
-                            let title = to_wstr("Confirm Restart");
-                            let msg_text = to_wstr(&format!(
-                                "Restart process tree for PID {}?",
-                                pid
-                            ));
-                            let result = MessageBoxW(
-                                hwnd,
-                                msg_text.as_ptr(),
-                                title.as_ptr(),
-                                MB_ICONQUESTION | MB_YESNO,
-                            );
-                            if result == IDYES {
-                                execute_restart(pid);
-                                // Small delay for process to die before refresh
-                                std::thread::sleep(std::time::Duration::from_millis(500));
-                                populate_listview(HWND_LISTVIEW);
-                            }
+            } else if cmd == IDM_RESTART {
+                if let Some(pid) = get_selected_pid(HWND_LISTVIEW) {
+                    if pid == 0 || pid == 4 {
+                        MessageBoxW(hwnd, to_wstr("Cannot restart critical system process.").as_ptr(), to_wstr("Warning").as_ptr(), MB_ICONWARNING | MB_OK);
+                    } else {
+                        let text = format!("Restart process tree for PID {}?", pid);
+                        let result = MessageBoxW(hwnd, to_wstr(&text).as_ptr(), to_wstr("Confirm Restart").as_ptr(), MB_ICONQUESTION | MB_YESNO);
+                        if result == IDYES {
+                            execute_restart(pid);
+                            std::thread::sleep(std::time::Duration::from_millis(500));
+                            populate_listview(HWND_LISTVIEW, HWND_EDIT_SEARCH);
                         }
                     }
                 }
-                IDM_REFRESH => {
-                    populate_listview(HWND_LISTVIEW);
-                }
-                _ => {}
             }
             0
         }
         WM_DESTROY => {
-            KillTimer(hwnd, TIMER_REFRESH);
             PostQuitMessage(0);
             0
         }
@@ -410,7 +420,7 @@ unsafe extern "system" fn wnd_proc(hwnd: HWND, msg: u32, wparam: WPARAM, lparam:
 fn main() {
     unsafe {
         let h_instance = GetModuleHandleW(ptr::null());
-        let class_name = to_wstr("NtProcLensClass");
+        let class_name = to_wstr("NtProcLensClassV5");
         let window_title = to_wstr("nt-proc-lens  |  The King's Process Explorer");
 
         let wc = WNDCLASSEXW {
@@ -445,9 +455,7 @@ fn main() {
             ptr::null(),
         );
 
-        if hwnd == 0 {
-            return;
-        }
+        if hwnd == 0 { return; }
 
         ShowWindow(hwnd, SW_SHOW);
         UpdateWindow(hwnd);

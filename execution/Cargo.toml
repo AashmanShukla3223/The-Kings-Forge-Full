@@ -1,6 +1,6 @@
 [package]
 name = "nt-proc-lens"
-version = "0.0.4"
+version = "0.0.5"
 edition = "2021"
 authors = ["The Forge"]
 description = "Micro Process Explorer - Native Win32 GUI"
