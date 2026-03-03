@@ -25,7 +25,8 @@
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **INIT** | 2026-03-02 | Repository Setup | **SUCCESS** | +4KB | Established project structure. |
 | **C-001** | 2026-03-02 | Initial Bootstrap | **SUCCESS** | 234KB | Used Raw FFI instead of windows-sys to bypass missing MSVC SDK dependency. |
-| **C-002** | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* |
+| **C-002** | 2026-03-03 | Sysadmin Micro-Utility | **SUCCESS** | 244KB | Implemented `nt-proc-lens` process explorer using pure Win32 API (`CreateToolhelp32Snapshot`). |
+| **C-003** | *Pending* | *Pending* | *Pending* | *Pending* | *Pending* |
 
 ---
 
@@ -48,6 +49,10 @@
 * *Preferred Pattern:* `GetLastError()` wrapped in a custom `Result<T, E>` type.
 * *Reason:* Windows errors are opaque; wrapping them enforces handling.
 
+### Process Management
+* *Preferred Pattern:* `CreateToolhelp32Snapshot` combined with `Process32FirstW` / `Process32NextW`. Use `OpenProcess` with `PROCESS_QUERY_INFORMATION | PROCESS_VM_READ` and pass the handle to `GetProcessMemoryInfo` for lightweight memory profiling.
+* *Reason:* Avoids heavy abstractions. Provides direct, exact access to OS process data.
+
 ---
 
 ## 6. Target Niche Application Categories
@@ -58,3 +63,9 @@ Based on our intelligence capabilities, future builds should eventually target t
 2.  **Workflow Automation:** Tools integrating with the Windows clipboard history, window snapping (like *PowerToys FancyZones*), and macro automation (like *AutoHotkey* execution engines).
 3.  **Specialized Industry Dashboards:** Highly optimized local native dashboards for reading localized data (e.g., inventory tracking, specialized point-of-sale data, or high-performance financial data visualizations) without relying on heavy web views.
 4.  **Hardware & Sensor Monitoring:** Low-level hardware interfacing tools like *HWiNFO* or *Fan Control* that require direct driver or strict native API access.
+5.  **Ultra-Low Latency Media Applications:** Direct-to-disk video recorders, audio DSP effects, or simple low-latency live streaming relays that avoid complex runtimes.
+6.  **Network Diagnostics & Packet Sniffing:** Extremely lightweight Wireshark alternatives that monitor specific ports, pings, or protocols with absolutely zero GUI overhead.
+7.  **Cryptography & Security Enclaves:** Offline password vault interfaces, local-only hashing/encryption utilities, or air-gapped cryptography tools.
+8.  **Minimalist Writing Environments:** Distraction-free native text editors that start up in under a millisecond while consistently taking under 1MB of memory.
+9.  **Reverse Engineering & Memory Hex Editors:** Fast, huge-file capable hex editors and memory inspectors similar to an optimized, single-purpose *HxD*.
+10. **Data Recovery & File Signatures:** Sector-by-sector disk reading tools for finding deleted files without relying on OS indexing.

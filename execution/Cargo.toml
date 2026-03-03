@@ -1,0 +1,25 @@
+[package]
+name = "nt-proc-lens"
+version = "0.0.2"
+edition = "2021"
+authors = ["The Forge"]
+description = "Micro Process Explorer"
+
+# Optimize for SIZE as per the 1.5MB strict limitation
+[profile.release]
+opt-level = "z"     # Optimize for size.
+lto = true          # Enable Link Time Optimization
+codegen-units = 1   # Reduce number of codegen units to increase optimizations.
+panic = "abort"     # Abort on panic
+strip = true        # Strip symbols from binary
+
+[dependencies]
+# We use windows-sys instead of windows to avoid heavy macro bloat
+[dependencies.windows-sys]
+version = "0.52"
+features = [
+    "Win32_Foundation",
+    "Win32_System_Diagnostics_ToolHelp",
+    "Win32_System_Threading",
+    "Win32_System_ProcessStatus"
+]
